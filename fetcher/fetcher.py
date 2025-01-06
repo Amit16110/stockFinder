@@ -16,13 +16,13 @@ def get_nifty500_symbols():
 
 
 
-def getSpecificStockData(symbol):
+def getSpecificStockData(symbol,table_name,interval):
     stock = yf.Ticker(symbol)
 
      # get price data
     endDate = datetime.now()
-    startTime = endDate - timedelta(days=300) # get 50 days of data
-    priceData = stock.history(start=startTime,end=endDate)
+    startTime = endDate - timedelta(days=1500) # get 50 days of data
+    priceData = stock.history(start=startTime,end=endDate,interval=interval)
 
     if priceData.empty:
         return None
@@ -34,22 +34,16 @@ def getSpecificStockData(symbol):
 
     engine=create_engine('postgresql://root:secret@localhost:5432/stock')
 
-    catchDate = priceData.reset_index()
+    dropColumnAndSaveSql = priceData.drop("Stock Splits",axis=1)
+    catchDate = dropColumnAndSaveSql.reset_index()
 
     catchDate['Date'] = pd.to_datetime(catchDate['Date']).dt.date
     
-    # LastUpdateData = previous200DaysData(symbol=symbol)
+    updateData = catchDate.iloc[[-1]]  #using a table square breaket wouldn't change the object type    
     
-    # if LastUpdateData > 0:
-    #    updateFromDay = catchDate.iloc[-2:-1]
-    # else:
-    #     updateFromDay = catchDate
-       
-    # print(updateFromDay)
-    dropColumnAndSaveSql = catchDate.drop("Stock Splits",axis=1)
-    table_name = 'stock_data'
+    table_name = table_name
     try:
-        dropColumnAndSaveSql.to_sql(table_name,engine,if_exists='append', index=False)
+        updateData.to_sql(table_name,engine,if_exists='append', index=False)
         print(f"Data successfully inserted/appended to table '{table_name}'.")
     except Exception as e:
         print(f"An error occurred during database operation: {e}")
@@ -172,10 +166,13 @@ def get_stock_data(stock,priceData,symbol):
 
 def callFetecher():
     nifty500 = get_nifty500_symbols()
-
+    Weeklyinterval='1wk'
+    weeklyStockTable = "stock_data_weekly"
+    OneDayinterval='1d'
+    dasyStockTable = "stock_data"
     for stock in nifty500:
         print(f"Stock data update:{stock}")
-        getSpecificStockData(stock)
+        getSpecificStockData(stock,weeklyStockTable,Weeklyinterval)
         print("completed")
        
 

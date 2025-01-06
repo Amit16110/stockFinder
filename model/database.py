@@ -44,6 +44,47 @@ class StockData(db.Model):
                 f"ThreeDay_Volume={self.ThreeDay_Volume}, Weekly_Volume={self.Weekly_Volume}, "
                 f"created_at={self.created_at}, updated_at={self.updated_at})>")
 
+class StockDataWeakly(db.Model):
+    __tablename__ = 'stock_data_weekly'
+
+    Date = db.Column(db.Date, primary_key=True, nullable=False)
+    Symbol = db.Column(db.String(50), primary_key=True, nullable=False)
+    Open = db.Column(db.Numeric(50, 2))
+    High = db.Column(db.Numeric(50, 2))
+    Low = db.Column(db.Numeric(50, 2))
+    Close = db.Column(db.Numeric(50, 2))
+    Volume = db.Column(db.BigInteger)
+    Dividends = db.Column(db.Numeric(50, 2))
+    Stock_splits = db.Column(db.Numeric(50, 2))
+    Low25 = db.Column(db.Numeric(50, 2))
+    Gtt = db.Column(db.Numeric(50, 2))
+    Target = db.Column(db.Numeric(50, 2))
+    Daily_Volume = db.Column(db.BigInteger)
+    ThreeDay_Volume = db.Column(db.BigInteger)
+    Weekly_Volume = db.Column(db.BigInteger)
+    Sma20 = db.Column(db.Numeric(50, 2))
+    Sma50 = db.Column(db.Numeric(50, 2))
+    Sma200 = db.Column(db.Numeric(50, 2))
+    Rsi = db.Column(db.Numeric(50, 2))
+    Macd = db.Column(db.Numeric(50, 2))
+    Macd_Signal = db.Column(db.Numeric(50, 2))
+    Macd_Hist = db.Column(db.Numeric(50, 2))
+    BB_Upper = db.Column(db.Numeric(50, 2))
+    BB_Middle = db.Column(db.Numeric(50, 2))
+    BB_Lower = db.Column(db.Numeric(50, 2))
+    Obv = db.Column(db.Numeric(50, 2))
+    Analysis = db.Column(db.String(200))
+
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())  # Auto-set when created
+    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())  # Auto-update when modified
+    def __repr__(self):
+        return (f"<StockData(Date={self.Date}, Symbol='{self.Symbol}', Open={self.Open}, "
+                f"High={self.High}, Low={self.Low}, Close={self.Close}, Volume={self.Volume}, "
+                f"Dividends={self.Dividends}, Stock_splits={self.Stock_splits}, Low25={self.Low25}, "
+                f"Gtt={self.Gtt}, Target={self.Target}, Daily_Volume={self.Daily_Volume}, "
+                f"ThreeDay_Volume={self.ThreeDay_Volume}, Weekly_Volume={self.Weekly_Volume}, "
+                f"created_at={self.created_at}, updated_at={self.updated_at})>")
+
 
 class StockFundamentals(db.Model):
     __tablename__ = 'stock_fundamentals'
