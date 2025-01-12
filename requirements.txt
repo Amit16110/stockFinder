@@ -8,7 +8,6 @@ certifi==2019.11.28
 chardet==3.0.4
 charset-normalizer==3.4.1
 click==8.1.8
-cloud-init==22.4.2
 colorama==0.4.3
 comm==0.2.2
 command-not-found==0.3

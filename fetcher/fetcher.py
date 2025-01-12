@@ -1,11 +1,10 @@
 import yfinance as yf
 import pandas as pd 
 from datetime import datetime,timedelta
-from model.database import StockData,get_DaysStockData
+from model.database import StockData,get_DaysStockData,StockFundamentals,insert_data
 from sqlalchemy import create_engine
 import time
 import talib
-
 
 
 def get_nifty500_symbols():
@@ -16,7 +15,7 @@ def get_nifty500_symbols():
 
 
 
-def getSpecificStockData(symbol,table_name,interval):
+def getSpecificStockData(symbol,table_name,interval,lastDay):
     stock = yf.Ticker(symbol)
 
      # get price data
@@ -30,8 +29,10 @@ def getSpecificStockData(symbol,table_name,interval):
     priceData['Symbol'] = symbol
     # daily stock info
     buyLowSellHigh(priceData)
+    # FOR FUNDAMENTAL.
+    # get_stock_data(stock=stock, priceData=priceData,symbol=symbol)
    
-
+# Start
     engine=create_engine('postgresql://root:secret@localhost:5432/stock')
 
     dropColumnAndSaveSql = priceData.drop("Stock Splits",axis=1)
@@ -39,7 +40,7 @@ def getSpecificStockData(symbol,table_name,interval):
 
     catchDate['Date'] = pd.to_datetime(catchDate['Date']).dt.date
     
-    updateData = catchDate.iloc[[-1]]  #using a table square breaket wouldn't change the object type    
+    updateData = catchDate.iloc[-lastDay:]  #using a table square breaket wouldn't change the object type    
     
     table_name = table_name
     try:
@@ -51,6 +52,7 @@ def getSpecificStockData(symbol,table_name,interval):
     # save this data and use that save data to update the 
     # Stock fundamental
     # get_stock_data(stock=stock,priceData=priceData,symbol=symbol)
+    # # End
   
 
 def buyLowSellHigh(priceData):
@@ -108,85 +110,95 @@ def get_stock_data(stock,priceData,symbol):
     daily_change = ((latest_price['Close'] - priceData.iloc[-2]['Close']) / priceData.iloc[-2]['Close']) * 100
 
     # Weekly Change
-    weekly_change = ((latest_price['Close'] - priceData.iloc[-6]['Close']) / priceData.iloc[-6]['Close']) * 100
+    if len(priceData) >= 6:
+        weekly_change = ((latest_price['Close'] - priceData.iloc[-6]['Close']) / priceData.iloc[-6]['Close']) * 100
+    else:
+        weekly_change = None  # or some defaujlt value
 
     # Monthly Change (assuming 22 trading days in a month)
-    monthly_change = ((latest_price['Close'] - priceData.iloc[-22]['Close']) / priceData.iloc[-22]['Close']) * 100
+    if len(priceData) >= 22:
+        monthly_change = ((latest_price['Close'] - priceData.iloc[-22]['Close']) / priceData.iloc[-22]['Close']) * 100
+    else:
+        monthly_change = None
 
 
     # Get fundamental of data
     info = stock.info
-    stockData = {
-    'Symbol': symbol,
-    'Company Name': info.get('longName', 'N/A'),
-    'Sector': info.get('sector', 'N/A'),
-    'Industry': info.get('industry', 'N/A'),
-    'Market Cap': info.get('marketCap', 'N/A'),
-    'P/E Ratio': info.get('trailingPE', 'N/A'),
-    'Forward P/E': info.get('forwardPE', 'N/A'),
-    'PEG Ratio': info.get('pegRatio', 'N/A'),
-    'Price to Book': info.get('priceToBook', 'N/A'),
-    'EV/EBITDA': info.get('enterpriseToEbitda', 'N/A'),
-    'Profit Margin': info.get('profitMargins', 'N/A'),
-    'Operating Margin': info.get('operatingMargins', 'N/A'),
-    'ROE': info.get('returnOnEquity', 'N/A'),
-    'ROA': info.get('returnOnAssets', 'N/A'),
-    'Revenue': info.get('totalRevenue', 'N/A'),
-    'Revenue Per Share': info.get('revenuePerShare', 'N/A'),
-    'Quarterly Revenue Growth': info.get('quarterlyRevenueGrowth', 'N/A'),
-    'Gross Profit': info.get('grossProfits', 'N/A'),
-    'EBITDA': info.get('ebitda', 'N/A'),
-    'Net Income': info.get('netIncomeToCommon', 'N/A'),
-    'EPS': info.get('trailingEps', 'N/A'),
-    'Quarterly Earnings Growth': info.get('quarterlyEarningsGrowth', 'N/A'),
-    'Total Cash': info.get('totalCash', 'N/A'),
-    'Total Debt': info.get('totalDebt', 'N/A'),
-    'Debt To Equity': info.get('debtToEquity', 'N/A'),
-    'Current Ratio': info.get('currentRatio', 'N/A'),
-    'Book Value': info.get('bookValue', 'N/A'),
-    'Free Cash Flow': info.get('freeCashflow', 'N/A'),
-    'Dividend Rate': info.get('dividendRate', 'N/A'),
-    'Dividend Yield': info.get('dividendYield', 'N/A'),
-    'Payout Ratio': info.get('payoutRatio', 'N/A'),
-    'Beta': info.get('beta', 'N/A'),
-    '52 Week High': info.get('fiftyTwoWeekHigh', 'N/A'),
-    '52 Week Low': info.get('fiftyTwoWeekLow', 'N/A'),
-    '50 Days Average': info.get('fiftyDayAverage', 'N/A'),
-    '200 Days Average': info.get('twoHundredDayAverage', 'N/A'),
-    'Latest Price': latest_price.get('Close', 'N/A'),
-    'Volume': latest_price.get('Volume', 'N/A')
-    
-   
 
-}
-    # print(stockData)
+ 
+
+    stockData = {
+        'symbol': clean_data(symbol),
+        'company_name': clean_data(info.get('longName', 'N/A')),
+        'sector': clean_data(info.get('sector', 'N/A')),
+        'industry': clean_data(info.get('industry', 'N/A')),
+        'market_cap': clean_data(info.get('marketCap', 'N/A')),
+        'pe_ratio': clean_data(info.get('trailingPE', 'N/A')),
+        'forward_pe': clean_data(info.get('forwardPE', 'N/A')),
+        'peg_ratio': clean_data(info.get('pegRatio', 'N/A')),
+        'price_to_book': clean_data(info.get('priceToBook', 'N/A')),
+        'ev_ebitda': clean_data(info.get('enterpriseToEbitda', 'N/A')),
+        'profit_margin': clean_data(info.get('profitMargins', 'N/A')),
+        'operating_margin': clean_data(info.get('operatingMargins', 'N/A')),
+        'roe': clean_data(info.get('returnOnEquity', 'N/A')),
+        'roa': clean_data(info.get('returnOnAssets', 'N/A')),
+        'revenue': clean_data(info.get('totalRevenue', 'N/A')),
+        'revenue_per_share': clean_data(info.get('revenuePerShare', 'N/A')),
+        'quarterly_revenue_growth': clean_data(info.get('quarterlyRevenueGrowth', 'N/A')),
+        'gross_profit': clean_data(info.get('grossProfits', 'N/A')),
+        'ebitda': clean_data(info.get('ebitda', 'N/A')),
+        'net_income': clean_data(info.get('netIncomeToCommon', 'N/A')),
+        'eps': clean_data(info.get('trailingEps', 'N/A')),
+        'quarterly_earnings_growth': clean_data(info.get('quarterlyEarningsGrowth', 'N/A')),
+        'total_cash': clean_data(info.get('totalCash', 'N/A')),
+        'total_debt': clean_data(info.get('totalDebt', 'N/A')),
+        'debt_to_equity': clean_data(info.get('debtToEquity', 'N/A')),
+        'current_ratio': clean_data(info.get('currentRatio', 'N/A')),
+        'book_value': clean_data(info.get('bookValue', 'N/A')),
+        'free_cash_flow': clean_data(info.get('freeCashflow', 'N/A')),
+        'dividend_rate': clean_data(info.get('dividendRate', 'N/A')),
+        'dividend_yield': clean_data(info.get('dividendYield', 'N/A')),
+        'payout_ratio': clean_data(info.get('payoutRatio', 'N/A')),
+        'beta': clean_data(info.get('beta', 'N/A')),
+        'fifty_two_week_high': clean_data(info.get('fiftyTwoWeekHigh', 'N/A')),
+        'fifty_two_week_low': clean_data(info.get('fiftyTwoWeekLow', 'N/A')),
+        'daily_change': clean_data(daily_change),
+        'weekly_change': clean_data(weekly_change),
+        'monthly_change': clean_data(monthly_change),
+    }
+
+    
+    print(stockData)
+    newFunda = StockFundamentals(**stockData)
+
+    insert_data(newFunda)
     # TODO: Inset fundamental data here.=> remove return
     return stockData
 
-
+def clean_data(value):
+    if value == 'N/A' or value is None:
+        return None
+    return value
 def callFetecher():
     nifty500 = get_nifty500_symbols()
     Weeklyinterval='1wk'
     weeklyStockTable = "stock_data_weekly"
     OneDayinterval='1d'
-    dasyStockTable = "stock_data"
+    OneDayStockTable = "stock_data"
+
+    
+    lastUpdateDay = last_updated_date()
+
     for stock in nifty500:
         print(f"Stock data update:{stock}")
-        getSpecificStockData(stock,weeklyStockTable,Weeklyinterval)
+        getSpecificStockData(stock,OneDayStockTable,OneDayinterval,lastUpdateDay)
         print("completed")
        
 
-def singleFetecher():
-    getSpecificStockData("GVT&D.NS")
 
-
-
-
-# Todo: get the days datea 
-def previous200DaysData(symbol):
-    listOfStock = get_nifty500_symbols()
-    
-    result = get_DaysStockData(stock_symbol=symbol,limit=1)
+# Last stock market data update 
+def last_updated_date():
+    result = get_DaysStockData(limit=1)
     stock_dicts = []
     for stock in result:
         stock_dicts.append({
@@ -201,14 +213,16 @@ def previous200DaysData(symbol):
             "Gtt": stock.Gtt,
             "Target": stock.Target,
         })
+    
+    if len(stock_dicts) == 0:
+        return 3 
     # for re in stock_dicts:
     last_updated_date = stock_dicts[0]['Date']
    
-    df = pd.to_datetime(last_updated_date)
+    prev = pd.to_datetime(last_updated_date)
     cur = pd.to_datetime(datetime.now().date())
 
-    diff_days = (cur-df).days 
-    
+    diff_days = (cur-prev).days -1
     return diff_days
 
 def get_Signals(data):

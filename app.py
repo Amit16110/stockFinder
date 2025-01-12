@@ -2,7 +2,7 @@ from flask import Flask
 from routes import home_bp
 from config import Config
 from model.database import db
-from fetcher.fetcher import callFetecher,singleFetecher
+from fetcher.fetcher import callFetecher,last_updated_date
 
 app = Flask(__name__)
 app.config.from_object(Config)

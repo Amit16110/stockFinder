@@ -90,7 +90,7 @@ class StockFundamentals(db.Model):
     __tablename__ = 'stock_fundamentals'
 
     symbol = db.Column(db.String(50), primary_key=True, nullable=False)
-    company_name = db.Column(db.String(200), nullable=False)
+    company_name = db.Column(db.String(200))
     sector = db.Column(db.String(100))
     industry = db.Column(db.String(100))
     market_cap = db.Column(db.BigInteger)
@@ -123,79 +123,37 @@ class StockFundamentals(db.Model):
     beta = db.Column(db.Float)
     fifty_two_week_high = db.Column(db.Float)
     fifty_two_week_low = db.Column(db.Float)
-    fifty_day_average = db.Column(db.Float)
-    two_hundred_day_average = db.Column(db.Float)
-    latest_price = db.Column(db.Float)
-    rsi = db.Column(db.Float)
-    macd = db.Column(db.Float)
-    signal = db.Column(db.Float)
-    low25 = db.Column(db.Float)
-    gtt = db.Column(db.Float)
-    volume = db.Column(db.BigInteger)
-    Daily_Volume = db.Column(db.BigInteger)
-    threeDay_Volume = db.Column(db.BigInteger)
-    Weekly_Volume = db.Column(db.BigInteger)
+    daily_change=db.Column(db.BigInteger)
+    weekly_change=db.Column(db.BigInteger)
+    monthly_change=db.Column(db.BigInteger)
+    # fifty_day_average = db.Column(db.Float)
+    # two_hundred_day_average = db.Column(db.Float)
+    # latest_price = db.Column(db.Float)
+    # rsi = db.Column(db.Float)
+    # macd = db.Column(db.Float)
+    # signal = db.Column(db.Float)
+    # low25 = db.Column(db.Float)
+    # gtt = db.Column(db.Float)
+    # volume = db.Column(db.BigInteger)
+    # Daily_Volume = db.Column(db.BigInteger)
+    # threeDay_Volume = db.Column(db.BigInteger)
+    # Weekly_Volume = db.Column(db.BigInteger)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())  # Auto-set when created
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())  # Auto-update when modified
 
 
-def get_DaysStockData(stock_symbol: str, limit: int):
-    # query = (
-    #     select(StockData)
-    #     .where(StockData.Date <= func.current_date())
-    #     .where(StockData.Symbol == stock_symbol)
-    #     .order_by(desc(StockData.Date))
-    #     .limit(limit=limit)
-    # )
-    # result = db.session.execute(query).scalar()
+def get_DaysStockData(limit: int):
     result = StockData.query.filter(
         StockData.Date <= func.current_date(),
-        StockData.Symbol == stock_symbol
+        # StockData.Symbol == stock_symbol
     ).order_by(StockData.Date.desc()).limit(limit=limit).all()
-    # length = StockData.query.all()
-    # print(length) 
-
     return result
 
-    
-# Example initialization in a Flask app:
-# from flask import Flask
-# app = Flask(__name__)
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://user:password@localhost/yourdatabase'
-# db.init_app(app)
-
-# Example of creating tables:
-# with app.app_context():
-#     db.create_all()
-
-# def insert_bulk_data(stock_data):
-#     try:
-#         objects = []
-#         # print(stock_data)
-#         # for row in stock_data.iterrows():
-#         stock_entry = StockData(
-
-#             # date=stock_data["Date"],
-#             symbol=stock_data["Symbol"],
-#             opens=stock_data["Open"],
-#             high=stock_data["High"],
-#             low=stock_data["Low"],
-#             close=stock_data["Close"],
-#             volume=stock_data["Volume"],
-#             dividends=stock_data["Dividends"],
-#             stock_splits=stock_data["Stock Splits"],
-#             low25=stock_data["LOW25"],
-#             gtt=stock_data["GTT"],
-#             target=stock_data["TARGET"],
-#             Daily_Volume = stock_data["Daily_Volume"],
-#             threeDay_Volume = stock_data["threeDay_Volume"],
-#             Weekly_Volume = stock_data["Weekly_Volume"]
-#         )
-#         print(stock_entry)
-#         # objects.append(stock_entry)
-#         db.session.add(stock_entry)
-#         db.session.commit()
-#         print("Stock data inserted succssfully")
-#     except Exception as e:
-#         db.session.rollback()
-#         print(f"Failed to insert bulk data:{e}")
+def insert_data(stockData):
+    try:
+        db.session.add(stockData)
+        db.session.commit()
+        print("Added successfully")
+    except Exception as e:
+        # db.session.rollback()
+        print(f"ERROR:{e}")
